@@ -28,6 +28,7 @@ const useStyles = makeStyles((theme) => ({
     height: 70,
     width: 70,
     textAlign: 'center',
+    justifyContent: "center"
   },  
 }));
 

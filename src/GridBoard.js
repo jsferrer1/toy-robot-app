@@ -1,5 +1,5 @@
 import React from 'react';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { makeStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
 import Paper from '@material-ui/core/Paper';
@@ -50,24 +50,6 @@ const PlaceInput = ({ inputRef, ...props }) => (
 
 const arrayFromInteger = (range) => Array.from(Array(range).keys(), i => i);
 
-const createEmpty2DArray = (height, width) => {
-  let data = [];
-  for (let i = 0; i < height; i++) {
-    data.push([]);
-    for (let j = 0; j < width; j++) {
-      data[i][j] = {
-        x: i,
-        y: j,
-        facingDirection: '',
-        isBotHere: false,
-      };
-    }
-  }
-  return data;
-}
-
-
-
 /**
  * main function
  */
@@ -75,17 +57,31 @@ const createEmpty2DArray = (height, width) => {
 export default function GridBoard() {
   const classes = useStyles();
   const [placeCommand, setPlaceCommand] = useState('');
-  const [currentGridId, setCurrentGridId] = useState('');
+  const [currentGrid, setCurrentGrid] = useState({});
+  const [isRobotOnGrid, setIsRobotOnGrid] = useState(false);
 
-  const rows = arrayFromInteger(5);
-  const columns = arrayFromInteger(5);
+  useEffect(() => {
+    console.log('currentGrid: ', currentGrid);
+    reportRobot();
+  }, [currentGrid]);  
 
+  const maxRows = 5;
+  const maxCols = 5;
+  const rows = [1,2,3,4,5];
+  const columns = [1,2,3,4,5];
+
+  const faceNorth = 'NORTH';
+  const faceEast = 'EAST';
+  const faceWest = 'WEST';
+  const faceSouth = 'SOUTH';
   const mapFace = {
-    'NORTH' : '^',
-    'EAST' : '>',
-    'WEST' : '<',
-    'SOUTH' : 'V'
+    'NORTH' : {arrow:'^', left: 'WEST:<', right: 'EAST:>'},
+    'EAST' : {arrow:'>', left: 'NORTH:^', right: 'SOUTH:V'},
+    'WEST' : {arrow:'<', left: 'SOUTH:V', right: 'NORTH:^'},
+    'SOUTH' : {arrow:'V', left: 'EAST:>', right: 'WEST:<'},
   }
+
+  const keyFace = Object.keys(mapFace);
 
   const handleCommand = (e) => {
     if (e.key === 'Enter') {
@@ -97,24 +93,111 @@ export default function GridBoard() {
   const placeRobot = () => {
     console.log('placeCommand: ', placeCommand);
     let [x,y,f] = placeCommand.trim().split(',');
-    console.log('x: ', x--);
-    console.log('y: ', y--);
+    let arrow = '';
+    console.log('x: ', x);
+    console.log('y: ', y);
     console.log('f: ', f);
-    console.log('facing: ', mapFace[f]);
+    if (!keyFace.includes(f)) {
+      return false;
+    }
+    arrow = mapFace[f].arrow
+    console.log('facing: ', arrow);
     const gridId = 'x_' + x + '_y_' + y;
-    document.getElementById(gridId).innerHTML = '<p>'+mapFace[f]+'</p>';
-    setCurrentGridId(gridId);
+    console.log('currentGridId: ', gridId);
+    document.getElementById(gridId).innerHTML = '<p>'+arrow+'</p>';
+    setCurrentGrid({
+      x: x,
+      y: y,
+      facing: f,
+      arrow: arrow
+    });
+
     // disable command and place
+    setIsRobotOnGrid(true);
   }
 
   const moveRobot = () => {
-    document.getElementById('x_0_y_0').innerHTML = '<p>bot</p>';
+    console.log('moveRobot: currentGrid: ', currentGrid);
+    let {x, y, facing, arrow} = currentGrid;
+    console.log('moveRobot: x: y: ', x, y);
+    let currentGridId = 'x_' + x + '_y_' + y;
+
+    switch (facing) {
+      case faceNorth: {
+        if (--y < 1 ) {
+          return false; // do nothing
+        }
+        break;
+      }
+      case faceSouth: {
+        if (++y > maxRows) {
+          return false; // do nothing
+        }        
+        break;
+      }
+      case faceEast: {
+        if (++x > maxRows) {
+          return false; // do nothing
+        }
+        break;
+      }
+      case faceWest: {
+        if (--x < 1) {
+          return false; // do nothing
+        }
+        break;
+      }
+      default: break;
+    }
+
+    const gridId = 'x_' + x + '_y_' + y;
+    document.getElementById(currentGridId).innerHTML = '';
+    document.getElementById(gridId).innerHTML = '<p>'+arrow+'</p>';
+    setCurrentGrid({
+      x: x,
+      y: y,
+      facing: facing,
+      arrow: arrow
+    });
   }
   
-  const hideRobot = () => {
-    document.getElementById('x_0_y_0').innerHTML = '';
+  const leftRobot = () => {
+    console.log('leftRobot: currentGrid: ', currentGrid);
+    let {x, y, facing, arrow} = currentGrid;
+    console.log('leftRobot: x: y: ', x, y);
+    let currentGridId = 'x_' + x + '_y_' + y;
+
+    let [newFacing, newArrow] = mapFace[facing].left.split(':');
+    document.getElementById(currentGridId).innerHTML = '<p>'+newArrow+'</p>';
+    setCurrentGrid({
+      x: x,
+      y: y,
+      facing: newFacing,
+      arrow: newArrow
+    });
   }
       
+  const rightRobot = () => {
+    console.log('leftRobot: currentGrid: ', currentGrid);
+    let {x, y, facing, arrow} = currentGrid;
+    console.log('leftRobot: x: y: ', x, y);
+    let currentGridId = 'x_' + x + '_y_' + y;
+
+    let [newFacing, newArrow] = mapFace[facing].right.split(':');
+    document.getElementById(currentGridId).innerHTML = '<p>'+newArrow+'</p>';
+    setCurrentGrid({
+      x: x,
+      y: y,
+      facing: newFacing,
+      arrow: newArrow
+    });
+  }
+
+  const reportRobot = () => {
+    let {x, y, facing, arrow} = currentGrid;
+    setPlaceCommand(x + ',' + y + ',' + facing);
+  }
+
   const reset = () => {
     window.location.reload();
   }
@@ -128,7 +211,7 @@ export default function GridBoard() {
             <Grid key={y} item>
               <Paper 
                className={classes.paper} 
-               id={"x_"+x+"_y_"+y}
+               id={"x_"+y+"_y_"+x}
               />
             </Grid>
           ))}
@@ -142,16 +225,18 @@ export default function GridBoard() {
         <Grid item xs={12} align="left">
           <TextField 
            id="placeCommand" 
-           label="Command" 
+           value={placeCommand}
+           label='Place'
+           disabled={isRobotOnGrid}
            onKeyPress={(e) => {handleCommand(e)}}
            InputProps={{ inputComponent: PlaceInput }}
           />          
           <br/><br/>
-          <Button onClick={() => {placeRobot()}}>place</Button>
-          <Button onClick={() => {moveRobot()}}>move</Button>
-          <Button onClick={() => {hideRobot()}}>left</Button>
-          <Button onClick={() => {hideRobot()}}>right</Button>
-          <Button onClick={() => {hideRobot()}}>report</Button>
+          <Button onClick={() => {placeRobot()}} disabled={isRobotOnGrid}>place</Button>
+          <Button onClick={() => {moveRobot()}} disabled={!isRobotOnGrid}>move</Button>
+          <Button onClick={() => {leftRobot()}} disabled={!isRobotOnGrid}>left</Button>
+          <Button onClick={() => {rightRobot()}} disabled={!isRobotOnGrid}>right</Button>
+          {/* <Button onClick={() => {reportRobot()}} disabled={!isRobotOnGrid}>report</Button> */}
           <Button onClick={() => {reset()}}>reset</Button>
         </Grid>
       </Grid>

@@ -1,5 +1,7 @@
 # Toy Robot Simulator
 
+![Screenshot](https://github.com/jsferrer1/toy-robot-app/blob/master/app.png)
+
 ### Install the app locally
 
 ```bash
